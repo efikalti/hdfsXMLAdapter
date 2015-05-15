@@ -36,7 +36,8 @@ public class ReadXML {
         // Create configuration
         Configuration conf = new Configuration();
         conf.set("fs.default.name", "hdfs://localhost:9000");
-        conf.set("tag", "</text>");
+        conf.set("start_tag", "<text>");
+        conf.set("end_tag", "</text>");
         // Create connector with the hdfs system
         FileSystem hdfs = FileSystem.get(conf);
 

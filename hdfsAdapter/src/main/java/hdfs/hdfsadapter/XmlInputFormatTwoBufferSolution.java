@@ -33,6 +33,7 @@ import org.apache.hadoop.mapreduce.TaskAttemptContext;
 import org.apache.hadoop.mapreduce.lib.input.FileSplit;
 import org.apache.hadoop.mapreduce.lib.input.TextInputFormat;
 import java.io.IOException;
+import java.net.URI;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import org.apache.hadoop.filecache.DistributedCache;
@@ -44,12 +45,14 @@ import org.apache.hadoop.fs.FileStatus;
  */
 public class XmlInputFormatTwoBufferSolution extends TextInputFormat {
 
-  public static String TAG;
+  public static String END_TAG;
+  public static String START_TAG;
 
   @Override
   public RecordReader<LongWritable, Text> createRecordReader(InputSplit split, TaskAttemptContext context) {
     try {
-        TAG = context.getConfiguration().get("tag");
+        END_TAG = context.getConfiguration().get("end_tag");
+        START_TAG = context.getConfiguration().get("start_tag");
       return new XmlRecordReader((FileSplit) split, context.getConfiguration());
     } catch (IOException ioe) {
       return null;
@@ -75,7 +78,7 @@ public class XmlInputFormatTwoBufferSolution extends TextInputFormat {
     Configuration conf;
 
     public XmlRecordReader(FileSplit split, Configuration conf) throws IOException {
-      tag = TAG.getBytes(Charsets.UTF_8);
+      tag = END_TAG.getBytes(Charsets.UTF_8);
       
       // open the file and seek to the start of the split
       start = split.getStart();
@@ -162,7 +165,8 @@ public class XmlInputFormatTwoBufferSolution extends TextInputFormat {
         // There isnt another complete item until the end of the block
         if (end - fsin.getPos() < item_size)
         {
-            Path[] filenames = DistributedCache.getLocalCacheFiles(conf);
+            URI[] filenames = DistributedCache.getCacheFiles(conf);
+            writeToFile(filenames[0].toString());
             
             while(fsin.getPos() != end)
             {

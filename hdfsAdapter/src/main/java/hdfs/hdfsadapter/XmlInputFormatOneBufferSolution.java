@@ -45,7 +45,7 @@ public class XmlInputFormatOneBufferSolution extends TextInputFormat {
   @Override
   public RecordReader<LongWritable, Text> createRecordReader(InputSplit split, TaskAttemptContext context) {
     try {
-        TAG = context.getConfiguration().get("tag");
+        TAG = context.getConfiguration().get("end_tag");
       return new XmlRecordReader((FileSplit) split, context.getConfiguration());
     } catch (IOException ioe) {
       return null;
