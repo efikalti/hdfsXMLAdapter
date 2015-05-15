@@ -22,21 +22,21 @@ import org.apache.hadoop.mapreduce.lib.output.TextOutputFormat;
  *
  * @author efi
  */
-public class Main {
+public class ReadXML {
 
     public static void main(String[] args) throws IOException, InterruptedException, ClassNotFoundException, URISyntaxException {
 
         long startTime = System.currentTimeMillis();
         
         // Paths of input and output directory
-        Path input = new Path("/user/efi/files/");    //input path
-        Path output = new Path("/user/efi/xml");    //output path
-        Path temp = new Path("/user/efi/buffer.txt");
+        Path input = new Path(args[1]);    //input path
+        Path output = new Path(args[2]);    //output path
+        Path temp = new Path("buffer.txt");
 
         // Create configuration
         Configuration conf = new Configuration();
         conf.set("fs.default.name", "hdfs://localhost:9000");
-        conf.set("tag", "</item>");
+        conf.set("tag", "</text>");
         // Create connector with the hdfs system
         FileSystem hdfs = FileSystem.get(conf);
 

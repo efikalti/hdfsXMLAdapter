@@ -54,7 +54,7 @@ public class XmlInputFormatOneBufferSolution extends TextInputFormat {
 
   /**
    * XMLRecordReader class to read through a given xml document to output xml blocks as records as specified
-   * by the start tag and end tag
+   * by the end tag
    * 
    */
   public static class XmlRecordReader extends RecordReader<LongWritable, Text> {
@@ -83,6 +83,13 @@ public class XmlInputFormatOneBufferSolution extends TextInputFormat {
       fsin.seek(start);
     }
 
+    /**
+     * Get next block item
+     * @param key
+     * @param value
+     * @return
+     * @throws IOException 
+     */
     private boolean next(LongWritable key, Text value) throws IOException {
         current_block = nextBlock();
       if (fsin.getPos() < end && current_block < blocks.length) {
@@ -113,6 +120,12 @@ public class XmlInputFormatOneBufferSolution extends TextInputFormat {
       return (fsin.getPos() - start) / (float) (end - start);
     }
 
+    /**
+     * Read the block from start till end and after that until you find a closing tag
+     * @param withinBlock
+     * @return
+     * @throws IOException 
+     */
     private boolean readBlock(boolean withinBlock) throws IOException
     {
       while (true) {
@@ -139,6 +152,13 @@ public class XmlInputFormatOneBufferSolution extends TextInputFormat {
       }
     }
     
+    /**
+     * Read from block(s) until you reach the end of file or find a matching bytes with match[]
+     * @param match
+     * @param withinBlock
+     * @return
+     * @throws IOException 
+     */
     private boolean readUntilMatch(byte[] match, boolean withinBlock) throws IOException {
       int i = 0;
       while (true) {
@@ -156,7 +176,6 @@ public class XmlInputFormatOneBufferSolution extends TextInputFormat {
         if (b == match[i]) {
           i++;
           if (i >= match.length) {
-              System.out.println("match" + fsin.getPos());
             return true;
           }
         } else {

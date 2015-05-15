@@ -36,17 +36,14 @@ import org.apache.hadoop.fs.BlockLocation;
 import org.apache.hadoop.fs.FileStatus;
 
 /**
- * Reads records that are delimited by a specific begin/end tag.
+ * Reads each block
  */
 public class XmlInputFormatBlockSolution extends TextInputFormat {
 
 
-  public static String TAG;
-
   @Override
   public RecordReader<LongWritable, Text> createRecordReader(InputSplit split, TaskAttemptContext context) {
     try {
-        TAG = context.getConfiguration().get("tag");
       return new XmlRecordReader((FileSplit) split, context.getConfiguration());
     } catch (IOException ioe) {
       return null;
@@ -60,7 +57,6 @@ public class XmlInputFormatBlockSolution extends TextInputFormat {
    */
   public static class XmlRecordReader extends RecordReader<LongWritable, Text> {
 
-    private final byte[] tag;
     private final long start;
     private final long end;
     private long block_start;
@@ -73,7 +69,6 @@ public class XmlInputFormatBlockSolution extends TextInputFormat {
     BlockLocation[] blocks;
 
     public XmlRecordReader(FileSplit split, Configuration conf) throws IOException {
-      tag = TAG.getBytes(Charsets.UTF_8);
       
       // open the file and seek to the start of the split
       start = split.getStart();
@@ -144,6 +139,13 @@ public class XmlInputFormatBlockSolution extends TextInputFormat {
       }
     }
     
+    /**
+     * Read from block(s) until you reach the end of file or find a matching bytes with match[]
+     * @param match
+     * @param withinBlock
+     * @return
+     * @throws IOException 
+    */
     private boolean readUntilMatch(byte[] match, boolean withinBlock) throws IOException {
       int i = 0;
       while (true) {

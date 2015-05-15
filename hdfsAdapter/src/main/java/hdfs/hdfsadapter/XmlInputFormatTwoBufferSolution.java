@@ -89,6 +89,14 @@ public class XmlInputFormatTwoBufferSolution extends TextInputFormat {
       this.conf = conf;
     }
 
+    /**
+     * Read next block, sending the incomplete items from the end of block to 
+     * the a specified file in distributed cache
+     * @param key
+     * @param value
+     * @return
+     * @throws IOException 
+     */
     private boolean next(LongWritable key, Text value) throws IOException {
         current_block = nextBlock();
       if (fsin.getPos() < end && current_block < blocks.length) {
@@ -119,6 +127,13 @@ public class XmlInputFormatTwoBufferSolution extends TextInputFormat {
       return (fsin.getPos() - start) / (float) (end - start);
     }
 
+    /**
+     * Read from block(s) until you reach the end of file or find a matching bytes with match[]
+     * @param match
+     * @param withinBlock
+     * @return
+     * @throws IOException 
+    */
     private boolean readBlock(boolean withinBlock) throws IOException
     {
       boolean first = false;

@@ -106,6 +106,13 @@ public class XmlInputFormat extends TextInputFormat {
       return (fsin.getPos() - start) / (float) (end - start);
     }
 
+    /**
+     * Read from block(s) until you reach the end of file or find a matching bytes with match[]
+     * @param match
+     * @param withinBlock
+     * @return
+     * @throws IOException 
+    */
     private boolean readUntilMatch(byte[] match, boolean withinBlock) throws IOException {
       int i = 0;
       while (true) {
