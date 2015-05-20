@@ -17,8 +17,8 @@ package hdfs.hdfsadapter;
  */
 
 import com.google.common.io.Closeables;
-import java.io.FileNotFoundException;
-import java.io.FileReader;
+import java.io.BufferedWriter;
+import java.io.FileWriter;
 import org.apache.commons.io.Charsets;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FSDataInputStream;
@@ -34,14 +34,17 @@ import org.apache.hadoop.mapreduce.lib.input.FileSplit;
 import org.apache.hadoop.mapreduce.lib.input.TextInputFormat;
 import java.io.IOException;
 import java.net.URI;
+import java.net.URISyntaxException;
+import java.util.Arrays;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import org.apache.hadoop.filecache.DistributedCache;
 import org.apache.hadoop.fs.BlockLocation;
+import org.apache.hadoop.fs.FSDataOutputStream;
 import org.apache.hadoop.fs.FileStatus;
 
 /**
- * Reads records that are delimited by a specific begin/end tag.
+ * Reads records that are delimited by a specific begin/end end_tag.
  */
 public class XmlInputFormatTwoBufferSolution extends TextInputFormat {
 
@@ -61,12 +64,13 @@ public class XmlInputFormatTwoBufferSolution extends TextInputFormat {
 
   /**
    * XMLRecordReader class to read through a given xml document to output xml blocks as records as specified
-   * by the start tag and end tag
+ by the start end_tag and end end_tag
    * 
    */
   public static class XmlRecordReader extends RecordReader<LongWritable, Text> {
 
-    private final byte[] tag;
+    private final byte[] end_tag;
+    private final byte[] start_tag;
     private final long start;
     private final long end;
     private int current_block = 0;
@@ -74,11 +78,14 @@ public class XmlInputFormatTwoBufferSolution extends TextInputFormat {
     private final DataOutputBuffer buffer = new DataOutputBuffer();
     private LongWritable currentKey;
     private Text currentValue;
-    BlockLocation[] blocks;
-    Configuration conf;
+    private final BlockLocation[] blocks;
+    private final Configuration conf;
+    private final String filename;
+    
 
     public XmlRecordReader(FileSplit split, Configuration conf) throws IOException {
-      tag = END_TAG.getBytes(Charsets.UTF_8);
+      end_tag = END_TAG.getBytes(Charsets.UTF_8);
+      start_tag = START_TAG.getBytes(Charsets.UTF_8);
       
       // open the file and seek to the start of the split
       start = split.getStart();
@@ -90,11 +97,12 @@ public class XmlInputFormatTwoBufferSolution extends TextInputFormat {
       fsin = fs.open(split.getPath());
       fsin.seek(start);
       this.conf = conf;
+      filename = split.getPath().getName();
     }
 
     /**
      * Read next block, sending the incomplete items from the end of block to 
-     * the a specified file in distributed cache
+ the a specified file out distributed cache
      * @param key
      * @param value
      * @return
@@ -102,13 +110,10 @@ public class XmlInputFormatTwoBufferSolution extends TextInputFormat {
      */
     private boolean next(LongWritable key, Text value) throws IOException {
         current_block = nextBlock();
-      if (fsin.getPos() < end && current_block < blocks.length) {
-        if (current_block > 0)
-        {
-          readUntilMatch(tag,false);
-        }
+      if (fsin.getPos() < end && current_block < blocks.length && readUntilMatch(start_tag,false)) {
         try {
-          if (readBlock(true)) {
+          buffer.write(start_tag);
+          if (readBlock()) {
             key.set(fsin.getPos());
             value.set(buffer.getData(), 0, buffer.getLength());
             return true;
@@ -137,12 +142,11 @@ public class XmlInputFormatTwoBufferSolution extends TextInputFormat {
      * @return
      * @throws IOException 
     */
-    private boolean readBlock(boolean withinBlock) throws IOException
+    private boolean readBlock() throws IOException
     {
-      boolean first = false;
+      boolean first = true;
       long item_size = 0;
       long pos = fsin.getPos();
-      DataOutputBuffer rest = new DataOutputBuffer();
       int b;
       while (true) {
         b = fsin.read();
@@ -150,48 +154,63 @@ public class XmlInputFormatTwoBufferSolution extends TextInputFormat {
         if (b == -1) {
           return false;
         }
-        // save to buffer:
-        if (withinBlock) {
-          buffer.write(b);
-        }
         
-        readUntilMatch(tag, true);
-        if (!first)
+        readUntilMatch(end_tag, true);
+        if (first)
         {
             item_size = fsin.getPos() - pos;
-            first = true;
+            first = false;
+        }
+        
+        if (fsin.getPos() >= end)
+        {
+            return true;
         }
         
         // There isnt another complete item until the end of the block
-        if (end - fsin.getPos() < item_size)
+        if ((end - fsin.getPos()) < item_size)
         {
             URI[] filenames = DistributedCache.getCacheFiles(conf);
             writeToFile(filenames[0].toString());
-            
-            while(fsin.getPos() != end)
-            {
-                rest.write(fsin.read());
-            }
             return true;
         }
       }
     }
     
-    private void writeToFile(String filepath)
+    private void writeToFile(String filepath) throws IOException
     {
          // The name of the file to open.
-        String fileName = filepath;
+        FileSystem hdfs = FileSystem.get(conf);
+        DataOutputBuffer rest = new DataOutputBuffer();
+        Path file = new Path(filepath);
+        FSDataOutputStream out;
+        
+        String starting_tag = "$$$ " + this.filename + ", " + this.current_block ;
+        byte[] bytes = new byte[(int) (end - fsin.getPos())];
+        fsin.read(fsin.getPos(), bytes, 0, (int) end);
 
-        // This will reference one line at a time
-        String line;
-
-            try {
-                // FileReader reads text files in the default encoding.
-                FileReader fileReader= new FileReader(fileName);
-            } catch (FileNotFoundException ex) {
-                Logger.getLogger(XmlInputFormatTwoBufferSolution.class.getName()).log(Level.SEVERE, null, ex);
+        // if file doesnt exists, then create it
+        if (!hdfs.exists(file)) {
+            hdfs.createNewFile(file);
+        }
+      /*  else
+        {
+            FileWriter fw = new FileWriter(filepath);
+            try (BufferedWriter bw = new BufferedWriter(fw)) {
+                bw.write(starting_tag + Arrays.toString(bytes));
+                bw.close();
+                fw.close();
             }
-
+        } */
+        out = hdfs.create(file);
+        out.write(starting_tag.getBytes());
+        out.write(bytes);
+        out.close();
+        try { 
+            DistributedCache.addCacheFile(new URI(filepath), conf);
+        } catch (URISyntaxException ex) {
+            Logger.getLogger(XmlInputFormatTwoBufferSolution.class.getName()).log(Level.SEVERE, null, ex);
+        }
     }
     
     private boolean readUntilMatch(byte[] match, boolean withinBlock) throws IOException {
@@ -211,7 +230,6 @@ public class XmlInputFormatTwoBufferSolution extends TextInputFormat {
         if (b == match[i]) {
           i++;
           if (i >= match.length) {
-              System.out.println("match" + fsin.getPos());
             return true;
           }
         } else {
