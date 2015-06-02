@@ -42,6 +42,7 @@ import org.apache.hadoop.filecache.DistributedCache;
 import org.apache.hadoop.fs.BlockLocation;
 import org.apache.hadoop.fs.FSDataOutputStream;
 import org.apache.hadoop.fs.FileStatus;
+import org.apache.hadoop.io.IOUtils;
 
 /**
  * Reads records that are delimited by a specific begin/end end_tag.
@@ -187,7 +188,7 @@ public class XmlInputFormatTwoBufferSolution extends TextInputFormat {
         
         String starting_tag = "$$$ " + this.filename + ", " + this.current_block ;
         byte[] bytes = new byte[(int) (end - fsin.getPos())];
-        fsin.read(fsin.getPos(), bytes, 0, (int) end);
+        fsin.read(fsin.getPos(), bytes, 0, bytes.length);
 
         // if file doesnt exists, then create it
         if (!hdfs.exists(file)) {
@@ -202,10 +203,20 @@ public class XmlInputFormatTwoBufferSolution extends TextInputFormat {
                 fw.close();
             }
         } */
+        
+        //backup
+        Path backup = new Path("backup");
+        FSDataOutputStream backup_out = hdfs.create(backup);
+        FSDataInputStream backup_in = hdfs.open(file);
+        IOUtils.copyBytes(backup_in, backup_out, conf, true);
+        backup_in = hdfs.open(backup);
+        
         out = hdfs.create(file);
+        IOUtils.copyBytes(backup_in, out, conf, false);
         out.write(starting_tag.getBytes());
         out.write(bytes);
         out.close();
+        backup_in.close();
         try { 
             DistributedCache.addCacheFile(new URI(filepath), conf);
         } catch (URISyntaxException ex) {

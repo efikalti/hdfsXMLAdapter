@@ -40,13 +40,14 @@ import org.apache.hadoop.fs.FileStatus;
  */
 public class XmlInputFormatOneBufferSolution extends TextInputFormat {
 
-  public static String TAG;
-
+  public static String STARTING_TAG;
+  public static String ENDING_TAG;
+  
   @Override
   public RecordReader<LongWritable, Text> createRecordReader(InputSplit split, TaskAttemptContext context) {
     try {
-        TAG = context.getConfiguration().get("end_tag");
-        TAG = "</text>";
+        STARTING_TAG = context.getConfiguration().get("start_tag");
+        ENDING_TAG = context.getConfiguration().get("end_tag");
       return new XmlRecordReader((FileSplit) split, context.getConfiguration());
     } catch (IOException ioe) {
       return null;
@@ -60,7 +61,8 @@ public class XmlInputFormatOneBufferSolution extends TextInputFormat {
    */
   public static class XmlRecordReader extends RecordReader<LongWritable, Text> {
 
-    private final byte[] tag;
+    private final byte[] end_tag;
+    private final byte[] start_tag;
     private final long start;
     private final long end;
     private int current_block = 0;
@@ -71,15 +73,18 @@ public class XmlInputFormatOneBufferSolution extends TextInputFormat {
     BlockLocation[] blocks;
 
     public XmlRecordReader(FileSplit split, Configuration conf) throws IOException {
-      tag = TAG.getBytes(Charsets.UTF_8);
+      end_tag = ENDING_TAG.getBytes(Charsets.UTF_8);
+      start_tag = ENDING_TAG.getBytes(Charsets.UTF_8);
       
       // open the file and seek to the start of the split
       start = split.getStart();
+      // set the end of the file
       end = start + split.getLength();
       Path file = split.getPath();
       FileSystem fs = file.getFileSystem(conf);
       FileStatus fStatus = fs.getFileStatus(file);
       blocks = fs.getFileBlockLocations(fStatus, 0, fStatus.getLen());
+      // seek the start of file
       fsin = fs.open(split.getPath());
       fsin.seek(start);
     }
@@ -96,7 +101,7 @@ public class XmlInputFormatOneBufferSolution extends TextInputFormat {
       if (fsin.getPos() < end && current_block < blocks.length) {
         if (current_block > 0)
         {
-          readUntilMatch(tag,false);
+          readUntilMatch(end_tag,false);
         }
         try {
           if (readBlock(true)) {
@@ -129,26 +134,22 @@ public class XmlInputFormatOneBufferSolution extends TextInputFormat {
      */
     private boolean readBlock(boolean withinBlock) throws IOException
     {
+      boolean read = false;
+      
       while (true) {
-        int b = fsin.read();
-        // end of file:
-        if (b == -1) {
-          return false;
-        }
-        // save to buffer:
-        if (withinBlock) {
-          buffer.write(b);
-        }
-        
-        if (fsin.getPos() == end)
+          
+        if (fsin.getPos() < end)
         {
-            readUntilMatch(tag, true);
-            return true;
+            if (readUntilMatch(start_tag,false))
+            {
+                buffer.write(start_tag);
+                readUntilMatch(end_tag, true);
+                read = true;
+            }
         }
-        
-        // see if we've passed the stop point:
-        if (!withinBlock && fsin.getPos() >= end) {
-          return false;
+        else
+        {
+            return read;
         }
       }
     }
