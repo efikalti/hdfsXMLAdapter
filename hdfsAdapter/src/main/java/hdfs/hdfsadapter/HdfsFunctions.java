@@ -51,39 +51,48 @@ public class HdfsFunctions {
     public boolean isLocatedInHDFS(String filename)
     {
         //Search every file and folder in the home directory
-        return searchInDirectory(fs.getHomeDirectory(), filename);
+        if (searchInDirectory(fs.getHomeDirectory(), filename) != null)
+        {
+            return true;
+        }
+        return false;
     }
     
-    public boolean searchInDirectory(Path directory, String filename)
+    public Path searchInDirectory(Path directory, String filename)
     {
         //Search every folder in the directory
         try {
             RemoteIterator<LocatedFileStatus> it = fs.listFiles(directory, true);
             String[] parts;
+            Path path;
             while(it.hasNext())
             {
-                parts = it.next().getPath().toString().split("/");
+                path = it.next().getPath();
+                parts = path.toString().split("/");
                 if(parts[parts.length-1].equals(filename))
                 {
-                    return true;
+                    return path;
                 }
             }
         } catch (IOException ex) {
             System.err.println(ex);
         }
-        return false;
+        return null;
     }
     
     public void readFile(String filename) throws IOException
     {
-
-    BufferedReader br = new BufferedReader(new InputStreamReader(System.in));
-    System.out.println("Enter the file path...");
-    String filePath = br.readLine();
-
-    Path path = new Path(filePath);
-    FSDataInputStream inputStream = fs.open(path);
-    System.out.println(inputStream.available());
-    fs.close();
+        Path path = this.searchInDirectory(fs.getHomeDirectory(), filename);
+        if (path != null)
+        {
+            BufferedReader br = new BufferedReader(new InputStreamReader(fs.open(path)));
+            String line;
+            line = br.readLine();
+            while (line != null) {
+                System.out.println(line);
+                line = br.readLine();
+            }
+            fs.close();
+        }
     }
 }

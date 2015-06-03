@@ -19,7 +19,7 @@ public class ReadXML {
         
         String conf = "/home/efi/Utilities/hadoop/etc/hadoop/";
         HdfsFunctions f = new HdfsFunctions(conf);
-        System.out.println(f.isLocatedInHDFS("file2"));
+        f.readFile("file");
         System.exit(0);
     }
 
