@@ -5,7 +5,12 @@
  */
 package hdfs.hdfsadapter;
 
+import java.io.InputStream;
+import java.io.OutputStream;
 import java.net.URI;
+import java.util.Set;
+import javax.lang.model.SourceVersion;
+import javax.tools.Tool;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.conf.Configured;
 import org.apache.hadoop.filecache.DistributedCache;
@@ -16,7 +21,6 @@ import org.apache.hadoop.mapreduce.Job;
 import org.apache.hadoop.mapreduce.lib.input.FileInputFormat;
 import org.apache.hadoop.mapreduce.lib.output.FileOutputFormat;
 import org.apache.hadoop.mapreduce.lib.output.TextOutputFormat;
-import org.apache.hadoop.util.Tool;
 
 /**
  *
@@ -24,7 +28,6 @@ import org.apache.hadoop.util.Tool;
  */
 public class XMLJob extends Configured implements Tool{
 
-    @Override
     public int run(String[] args) throws Exception {
         
         long startTime = System.currentTimeMillis();
@@ -90,6 +93,16 @@ public class XMLJob extends Configured implements Tool{
         System.out.println(totalTime);
         
         return code;
+    }
+
+    @Override
+    public int run(InputStream in, OutputStream out, OutputStream out1, String... strings) {
+        throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
+    }
+
+    @Override
+    public Set<SourceVersion> getSourceVersions() {
+        throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
     }
     
 }

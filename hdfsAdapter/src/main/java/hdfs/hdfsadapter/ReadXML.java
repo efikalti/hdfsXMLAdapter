@@ -5,8 +5,6 @@
  */
 package hdfs.hdfsadapter;
 
-import org.apache.hadoop.conf.Configuration;
-import org.apache.hadoop.util.ToolRunner;
 
 /**
  *
@@ -15,9 +13,14 @@ import org.apache.hadoop.util.ToolRunner;
 public class ReadXML {
 
     public static void main(final String[] args) throws Exception {
-        Configuration conf = new Configuration();
+        /*Configuration conf = new Configuration();
         int res = ToolRunner.run(conf, new hdfs.hdfsadapter.XMLJob(), args);
-        System.exit(res);
+        System.exit(res);*/
+        
+        String conf = "/home/efi/Utilities/hadoop/etc/hadoop/";
+        HdfsFunctions f = new HdfsFunctions(conf);
+        System.out.println(f.isLocatedInHDFS("file2"));
+        System.exit(0);
     }
 
 }
