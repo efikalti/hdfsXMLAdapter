@@ -9,7 +9,6 @@ import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import org.apache.hadoop.conf.Configuration;
-import org.apache.hadoop.fs.FSDataInputStream;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.LocatedFileStatus;
 import org.apache.hadoop.fs.Path;
@@ -48,8 +47,13 @@ public class HdfsFunctions {
      * @param filename
      * @return 
      */
-    public boolean isLocatedInHDFS(String filename)
+    public boolean isLocatedInHDFS(String filename) throws IOException
     {
+        //search file path
+        if (fs.exists(new Path(filename)))
+        {
+            return true;
+        }
         //Search every file and folder in the home directory
         if (searchInDirectory(fs.getHomeDirectory(), filename) != null)
         {
