@@ -6,8 +6,11 @@
 package hdfs.hdfsadapter;
 
 import java.io.BufferedReader;
+import java.io.File;
 import java.io.IOException;
 import java.io.InputStreamReader;
+import java.nio.file.FileSystems;
+import java.nio.file.PathMatcher;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.LocatedFileStatus;
@@ -42,8 +45,8 @@ public class HdfsFunctions {
     }
     
     /**
-     * Returns true if the file exists somewhere in the home directory of the user that called the function.
-     * Searches in subdirectories too.
+     * Returns true if the file path exists or it is located somewhere in the home directory of the user that called the function.
+     * Searches in subdirectories of the home directory too.
      * @param filename
      * @return 
      */
@@ -62,6 +65,12 @@ public class HdfsFunctions {
         return false;
     }
     
+    /**
+     * Searches the given directory and subdirectories for the file.
+     * @param directory to search
+     * @param filename of file we want
+     * @return path if file exists in this directory.else return null.
+     */
     public Path searchInDirectory(Path directory, String filename)
     {
         //Search every folder in the directory
@@ -98,5 +107,15 @@ public class HdfsFunctions {
             }
             fs.close();
         }
+    }
+    
+    /**
+     * Check if file exists.
+     * @param filename
+     * @return 
+     */
+    public boolean isLocalFile(String filename)
+    {
+        return new File(filename).exists();
     }
 }
