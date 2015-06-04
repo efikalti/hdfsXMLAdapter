@@ -9,8 +9,6 @@ import java.io.BufferedReader;
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStreamReader;
-import java.nio.file.FileSystems;
-import java.nio.file.PathMatcher;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.LocatedFileStatus;
@@ -95,8 +93,8 @@ public class HdfsFunctions {
     
     public void readFile(String filename) throws IOException
     {
-        Path path = this.searchInDirectory(fs.getHomeDirectory(), filename);
-        if (path != null)
+        Path path = new Path(filename);
+        if(fs.exists(path))
         {
             BufferedReader br = new BufferedReader(new InputStreamReader(fs.open(path)));
             String line;
@@ -107,15 +105,5 @@ public class HdfsFunctions {
             }
             fs.close();
         }
-    }
-    
-    /**
-     * Check if file exists.
-     * @param filename
-     * @return 
-     */
-    public boolean isLocalFile(String filename)
-    {
-        return new File(filename).exists();
     }
 }

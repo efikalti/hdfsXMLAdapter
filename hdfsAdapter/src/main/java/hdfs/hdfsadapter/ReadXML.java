@@ -19,7 +19,6 @@ public class ReadXML {
         
         String conf = "/home/efi/Utilities/hadoop/etc/hadoop/";
         HdfsFunctions f = new HdfsFunctions(conf);
-        System.out.println(f.isLocalFile("file1"));
         System.exit(0);
     }
 
