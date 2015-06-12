@@ -17,8 +17,8 @@ public class ReadXML {
         int res = ToolRunner.run(conf, new hdfs.hdfsadapter.XMLJob(), args);
         System.exit(res);*/
         
-        String conf = "/home/efi/Utilities/hadoop/etc/hadoop/";
-        HdfsFunctions f = new HdfsFunctions(conf);
+        HdfsFunctions f = new HdfsFunctions();
+        f.put("ghcnd", "ghcnd");
         System.exit(0);
     }
 
